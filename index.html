@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Punctuation Lab</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,"Noto Sans KR",sans-serif;color:#111;background:#fafafa;line-height:1.6}
+header{display:flex;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #ddd;background:#fff;font-size:14px;gap:8px;flex-wrap:wrap}
+header b{letter-spacing:.5px}.st{color:#2563eb;font-weight:600}
+main{max-width:760px;margin:0 auto;padding:16px}
+.card{background:#fff;border:1px solid #e3e3e3;border-radius:12px;padding:16px;margin:12px 0}
+h1{font-size:30px;margin:8px 0}h2{font-size:20px}h3{font-size:16px;margin:12px 0 4px}
+.sub{color:#666}.syms{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}
+.sym{width:56px;height:56px;border:1px solid #111;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:28px;background:#fff}
+button{font:inherit;cursor:pointer;border:1px solid #111;background:#fff;border-radius:8px;padding:8px 14px}
+button.p{background:#111;color:#fff}button.b{background:#2563eb;color:#fff;border-color:#2563eb}
+.opt{display:block;width:100%;text-align:left;margin:6px 0;overflow-wrap:anywhere}.opt.sel{border-color:#2563eb;background:#eff6ff;font-weight:600}
+.q{font-family:Georgia,serif;font-size:18px;overflow-wrap:anywhere}.bl{display:inline-block;min-width:34px;border-bottom:2px solid #111;text-align:center}
+.en{font-family:Georgia,serif;font-size:17px;overflow-wrap:anywhere}.ko{color:#666;font-size:14px;margin:0 0 8px}
+.ok{color:#15803d}.no{color:#b91c1c}li.ok,li.no{color:inherit}li.ok b{color:#15803d}li.no b{color:#b91c1c}
+li{margin:6px 0}ul{padding-left:18px}.nav{display:flex;justify-content:space-between;gap:8px;margin:16px 0;flex-wrap:wrap}
+.bar{height:8px;background:#e5e5e5;border-radius:4px;overflow:hidden}.bar i{display:block;height:100%;background:#2563eb}
+.steps{display:flex;gap:4px;flex-wrap:wrap;font-size:12px}.steps span{padding:2px 8px;border-radius:99px;background:#eee}.steps .on{background:#2563eb;color:#fff}
+table{border-collapse:collapse;width:100%;font-size:14px}td,th{border:1px solid #ddd;padding:6px;text-align:center}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}.tabs button.on{background:#2563eb;color:#fff;border-color:#2563eb}
+.drop{display:inline-block;min-width:44px;border-bottom:2px solid #2563eb;background:#eff6ff;border-radius:4px;padding:0 8px;text-align:center;cursor:pointer}
+.chip{display:inline-flex;width:48px;height:48px;border:1px solid #111;border-radius:8px;align-items:center;justify-content:center;font-size:24px;margin:4px;background:#fff;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}.chip.sel{border-color:#2563eb;background:#eff6ff}
+.note{font-size:13px;color:#666;background:#f3f3f3;border-radius:8px;padding:8px}.wrap{overflow-x:auto}
+</style></head><body>
+<header><b>Punctuation Lab</b><span class="st" id="st"></span></header>
+<main id="app"></main>
+<script>
+const SY=['-','—',';',':','&'],L='ABCDE';
+const NAMES={'-':'Hyphen','—':'Em Dash',';':'Semicolon',':':'Colon','&':'Ampersand'};
+const CATS=['Hyphen','Em Dash','Semicolon','Colon','Ampersand'];
+const QS=[
+{id:1,set:'pre',cat:'Hyphen',t:'The scientist developed a long [ ] term research project.',o:['—',':','-','&',';'],a:2,x:['부연 정보 삽입·강조용이다. 여기서는 복합 수식어를 만들어야 하므로 적절하지 않다.','설명이나 목록을 도입하는 기호로, 이 문장에서는 해당 기능이 필요하지 않다.','long과 term을 연결하여 long-term이라는 복합 형용사를 형성하므로 정답이다.','and를 대신하는 기호로, 두 단어를 복합 형용사로 연결하는 기능과 다르다.','밀접한 두 독립절을 연결하는 기호인데, 이 문장에는 독립절이 두 개 없다.']},
+{id:2,set:'pre',cat:'Em Dash',t:'Artificial intelligence [ ] despite its limitations [ ] is changing modern education.',o:['-','—',';',':','&'],a:1,x:['단어를 연결하여 복합 표현을 만드는 기호로, 문장 중간의 삽입구 표시에는 적합하지 않다.','despite its limitations라는 부연 정보를 문장 중간에 삽입하므로 정답이다.','독립절을 연결하는 기호로, 삽입구를 감싸는 기능으로 쓰지 않는다.','설명이나 목록을 도입하는 기호인데, 이 문장에서는 삽입 정보를 표시해야 한다.','and를 대신하는 기호로, 부연 정보를 삽입하는 기능이 없다.']},
+{id:3,set:'pre',cat:'Semicolon',t:'The experiment produced reliable results [ ] the researchers decided to publish their findings.',o:[':','-','&',';','—'],a:3,x:['앞의 내용을 설명·구체화하는 정보를 뒤에 제시할 때 쓴다. 여기서는 두 독립절의 연결이 핵심이다.','단어를 연결하는 기호로, 독립절을 연결할 수 없다.','and를 대신하는 기호로, 두 독립절 사이의 문장부호 역할을 하지 않는다.','앞뒤가 각각 독립적인 문장이고 의미적으로 연결되므로 정답이다.','부연 정보나 강조에 주로 쓴다. 이 문항이 평가하는 독립절 연결에는 세미콜론이 더 적절하다.']},
+{id:4,set:'pre',cat:'Colon',t:'The research focused on three factors [ ] education, technology, and social inequality.',o:[';',':','&','—','-'],a:1,x:['독립절 연결이나 복잡한 목록의 항목 구분에 쓴다. 여기서는 앞 내용을 구체적으로 열거해야 한다.','세 가지 요소를 언급한 뒤 구체적인 항목을 열거하므로 정답이다.','and를 대신하는 기호로, 목록 전체를 도입하는 기능은 없다.','추가 정보나 강조를 표시할 수 있지만, 이 문장에서는 목록을 도입하는 콜론이 더 적절하다.','복합 표현을 만드는 기호로, 목록 도입에 쓰지 않는다.']},
+{id:5,set:'pre',cat:'Ampersand',t:'The organization is called Research [ ] Development Institute.',o:[';','—','-',':','&'],a:4,x:['독립절을 연결하는 기호로, 기관 명칭에서 and를 나타내는 용도로 적절하지 않다.','부연 정보나 강조를 표시하는 기호로, and를 대신하지 않는다.','복합 표현을 만드는 기호다. 여기서는 Research and Development라는 관계를 나타내야 한다.','설명이나 목록을 도입하는 기호로, 공식 명칭에서 and를 대신하지 않는다.','Research and Development를 간결하게 나타내는 공식 명칭 표현이므로 정답이다.']},
+{id:16,set:'post',cat:'Hyphen',t:'The university introduced a high [ ] quality educational program.',o:[';','&','—','-',':'],a:3,x:['독립절 연결에 쓰는 기호로, 복합 수식어를 만드는 데 적절하지 않다.','and를 대신하는 기호로, high와 quality를 연결하는 기능과 다르다.','부연 정보·강조에 쓰는 기호로, 이 문맥의 복합 형용사에 적절하지 않다.','high와 quality를 연결해 high-quality라는 복합 형용사를 형성하므로 정답이다.','설명이나 목록을 도입하는 기호로, 단어를 연결하는 데 쓸 수 없다.']},
+{id:17,set:'post',cat:'Em Dash',t:'The new policy [ ] although controversial [ ] was approved.',o:[':','—','&','-',';'],a:1,x:['구체적인 설명이나 목록을 도입하는 기호로, 삽입구를 감싸는 데 적절하지 않다.','although controversial를 부연 정보로 삽입하므로 두 위치 모두 정답이다.','and를 대신하는 기호로, 삽입구를 표시할 수 없다.','단어를 연결하는 기호로, 문장 중간의 삽입구 표시에 적절하지 않다.','독립절 연결에 쓰며, although controversial은 독립절이 아니므로 적절하지 않다.']},
+{id:18,set:'post',cat:'Semicolon',t:'The population is aging rapidly [ ] local governments must prepare new welfare policies.',o:['-',':','&',';','—'],a:3,x:['단어를 연결하는 기호로, 독립절을 연결할 수 없다.','뒤에 설명이나 구체적 내용을 제시할 때 쓴다. 이 문장은 두 독립절의 의미적 연결이 핵심이다.','and를 대신하는 기호로, 독립절 사이의 문장부호 역할을 하지 않는다.','앞뒤가 각각 독립적인 문장이고 의미적으로 밀접하므로 정답이다.','독립절 사이에 쓰일 수 있는 문맥도 있지만, 이 문항이 평가하는 독립절 연결에는 세미콜론이 적절하다.']},
+{id:19,set:'post',cat:'Colon',t:'The study identified two major problems [ ] insufficient funding and limited public participation.',o:['&','—',':','-',';'],a:2,x:['and를 대신하는 기호로, 열거 구조를 도입할 수 없다.','추가 정보·강조를 표시할 수 있지만, 이 문장에서는 두 가지 문제를 열거하는 콜론이 더 적절하다.','완결된 문장 뒤에서 두 가지 문제를 구체적으로 열거하므로 정답이다.','단어를 연결하는 기호로, 목록 도입에 적절하지 않다.','독립절을 연결하는 기호다. 뒤의 내용은 독립절이 아니므로 적절하지 않다.']},
+{id:20,set:'post',cat:'Ampersand',t:'The organization established a new department called Arts [ ] Culture.',o:[':','-',';','—','&'],a:4,x:['설명이나 목록을 도입하는 기호로, 부서명에서 and를 대신하지 않는다.','복합 표현을 만드는 기호로, Arts and Culture라는 명칭을 나타내는 데 적절하지 않다.','독립절 연결에 쓰는 기호로, 부서명 내부에 쓸 수 없다.','부연 정보·강조를 나타내는 기호로, and를 대신하지 않는다.','Arts and Culture를 공식 명칭 형태로 간결하게 표현하므로 정답이다.']}];
+const CU=[
+{s:'-',n:'Hyphen',fn:'두 개 이상의 단어를 연결하여 하나의 복합 표현을 만드는 기호. 여러 단어가 하나의 형용사처럼 명사를 수식할 때 자주 쓴다.',ex:[['a well-known writer','잘 알려진 작가'],['a long-term research project','장기 연구 프로젝트'],['a user-friendly application','사용자 친화적인 애플리케이션']],role:'well과 known이 결합해 writer를 수식하고, long과 term은 결합해 research project를 수식하는 복합 형용사가 된다.',warn:'모든 복합어에 하이픈을 쓰는 것은 아니다. well-known, high-quality는 하이픈을 쓰지만 highly respected는 일반적으로 쓰지 않고, living room은 하이픈 없이 쓴다. 사용 여부는 사전이나 문서의 표기 지침에 따라 달라질 수 있다.',diff:'Hyphen은 단어와 단어를 연결, Em Dash는 부연 정보 삽입·강조, Semicolon은 밀접한 독립절 연결.'},
+{s:'—',n:'Em Dash',fn:'문장의 흐름을 잠시 끊고 추가 설명이나 강조할 정보를 삽입하는 기호. 쉼표나 괄호와 비슷하지만 대시로 둘러싼 정보에 더 강한 주목을 유도한다.',ex:[['The policy—which had been introduced only recently—failed.','그 정책은 도입된 지 얼마 되지 않았음에도 실패했다.'],['The employees were surprised by the decision—no change in company policy.','직원들은 그 결정에 놀랐다. 정책을 변경하지 않겠다는 결정이었기 때문이다.'],['An AI-supported learning program can provide additional feedback—but it should not replace teachers.','AI 기반 학습 프로그램은 추가적인 피드백을 제공할 수 있지만, 교사를 대체해서는 안 된다.']],role:'첫 문장의 기본 문장은 The policy failed.이며 which had been introduced only recently가 추가 정보다. 두 번째 문장은 대시 뒤에서 앞의 내용을 구체화한다.',warn:'대시는 하이픈보다 길다. 삽입구는 보통 두 개를 짝으로 쓰고, 문장 끝에서 강조할 때는 하나만 쓸 수도 있다. 지나치게 많이 쓰면 흐름이 불분명해진다. 이 앱에서는 Em Dash(—)를 학습하며 En Dash(–)와 구분한다.',diff:'well-known은 하이픈으로 단어를 연결하지만, The policy—which was controversial—failed.에서는 엠 대시로 추가 정보를 삽입한다.'},
+{s:';',n:'Semicolon',fn:'의미적으로 밀접한 두 독립절을 한 문장 안에서 연결하는 기호. 마침표처럼 완전히 분리하지 않으면서 쉼표보다 강한 구분을 나타낸다. 독립절은 주어와 동사를 갖추어 독립적으로 완전한 문장이 될 수 있는 절이다.',ex:[['The experiment was difficult; the students completed it successfully.','실험은 어려웠다. 그러나 학생들은 그것을 성공적으로 마쳤다.'],['The results were limited; however, the research provided valuable insights.','결과는 제한적이었다. 그러나 연구는 가치 있는 통찰을 제공했다.'],['The participants came from Seoul, Korea; Tokyo, Japan; and Paris, France.','참가자들은 대한민국 서울, 일본 도쿄, 프랑스 파리에서 왔다.']],role:'앞뒤가 모두 독립절이라 세미콜론으로 연결한다. 두 번째 예문에서 however는 대조 관계를 나타내고 그 뒤에 쉼표를 쓴다. 세 번째처럼 항목에 쉼표가 포함된 복잡한 목록은 세미콜론으로 구분한다.',warn:'세미콜론 앞뒤에는 원칙적으로 독립절이 와야 한다. ○ The weather was cold; we stayed indoors. × The weather was cold; because it was raining. (because절은 독립절이 아니다)',diff:'Period(.)는 문장을 완전히 끝내고, Comma(,)는 가벼운 구분이며, Colon(:)은 뒤에 설명이나 목록을 도입한다.'},
+{s:':',n:'Colon',fn:'앞에서 제시한 내용을 뒤에서 구체적으로 설명하거나 열거하거나 보충할 때 쓰는 기호.',ex:[['The research focused on three factors: education, technology, and social inequality.','연구는 교육, 기술, 사회적 불평등이라는 세 가지 요소에 주목했다.'],['She had one goal: to become a teacher.','그녀에게는 한 가지 목표가 있었다. 바로 교사가 되는 것이었다.'],['The teacher emphasized one principle: "Every student can learn."','교사는 한 가지 원칙을 강조했다. "모든 학생은 배울 수 있다."']],role:'앞부분에서 내용을 제시하고 뒷부분에서 목록·구체적 설명·인용문으로 풀어낸다.',warn:'콜론 앞부분은 원칙적으로 완결된 문장이어야 한다. ○ The study identified two problems: insufficient funding and limited participation. × The study identified: two problems. (동사와 목적어를 분리했다)',diff:'The project has one objective: improving education.(콜론: 앞을 구체화) / The project aims to improve education; it also seeks to reduce inequality.(세미콜론: 독립절 둘을 연결)'},
+{s:'&',n:'Ampersand',fn:'접속사 and를 대신하는 기호. and와 같은 의미를 전달하지만 일반 문장보다는 공식 명칭, 제목, 약어 등에서 주로 쓴다.',ex:[['Johnson & Johnson / U.S. News & World Report','기업·기관의 공식 명칭'],['R&D = Research and Development / Q&A = Questions and Answers','약어'],['Arts & Culture','예술과 문화(간결한 제목 표현)']],role:'공식 명칭, 약어, 제목에서 and를 간결하게 나타내는 표기다.',warn:'일반 문장에서 and를 무조건 대체하지 않는다. Students study history and politics.처럼 일반 문장에서는 and를 쓴다. 공식 명칭이나 특정 스타일이 아니라면 무분별하게 쓰지 않는다.',diff:'Ampersand는 and와 같은 의미를 전달하지만 모든 문장에서 and를 대체할 수는 없다.'}];
+const CQ=[
+{id:6,cat:'Hyphen',type:'dd',t:'She introduced a user [ ] friendly application.',a:[0],x:['user와 friendly를 연결하여 user-friendly라는 복합 형용사를 형성하므로 정답이다.','부연 정보 삽입·강조에 쓰는 기호이므로 이 문맥에는 적절하지 않다.','독립절 연결에 쓰는 기호이므로 단어 사이에 넣을 수 없다.','설명이나 목록을 도입하는 기호이므로 단어를 연결하는 이 문맥에는 적절하지 않다.','and를 대신하는 기호이므로 user와 friendly를 하나의 복합 수식어로 만드는 데 적절하지 않다.']},
+{id:7,cat:'Hyphen',type:'mc',t:'What is the main function of a hyphen?',o:['두 독립절을 연결한다','부연 정보를 삽입한다','단어들을 연결해 복합 표현을 만든다','목록이나 설명을 도입한다','단어 "and"를 대신한다'],a:2,x:['두 독립절을 연결하는 것은 세미콜론의 대표 기능이다.','부연 정보를 삽입하는 것은 엠 대시의 대표 기능이다.','하이픈은 단어들을 연결해 복합 표현을 형성하므로 정답이다.','목록이나 구체적인 설명을 도입하는 것은 콜론의 대표 기능이다.','and를 대신하는 기호는 앰퍼샌드다.']},
+{id:8,cat:'Em Dash',type:'dd',t:'The teacher [ ] who had extensive experience [ ] introduced a new teaching method.',a:[1,1],x:['단어를 연결하여 복합 표현을 만드는 기호이므로 문장 중간의 삽입구를 표시하는 데 적절하지 않다.','who had extensive experience를 부연 정보로 삽입하고 있으므로 두 위치 모두 정답이다.','독립절 연결에 쓰는 기호이며 이 문장에서는 삽입구를 감싸는 역할을 할 수 없다.','뒤에 설명이나 목록을 도입하는 기호이므로 이 문장 구조에 적절하지 않다.','and를 대신하는 기호로 삽입구를 표시하지 않는다.']},
+{id:9,cat:'Em Dash',type:'mc',t:'What is the main function of an em dash?',o:['복합어를 만든다','두 독립절을 연결한다','단어 "and"를 대신한다','부연 정보를 삽입하거나 강조한다','목록을 도입한다'],a:3,x:['복합어를 형성하는 것은 하이픈의 대표 기능이다.','독립절 연결은 세미콜론의 대표 기능이다. 대시도 특정 문맥에서 독립절 사이에 쓰일 수 있지만, 이 선택지는 엠 대시의 핵심인 삽입·강조 기능을 설명하지 않는다.','and를 대신하는 기호는 앰퍼샌드다.','엠 대시는 추가 정보를 삽입하거나 특정 내용을 강조하므로 정답이다.','목록을 도입하는 것은 콜론의 대표 기능이다.']},
+{id:10,cat:'Semicolon',type:'dd',t:'Technology continues to advance rapidly [ ] society must adapt to these changes.',a:[2],x:['단어를 연결하는 기호이므로 두 독립절 사이에 사용할 수 없다.','두 독립절 사이에 쓰일 수 있는 문맥도 있지만, 이 문항은 의미적으로 밀접한 두 독립절을 연결하는 세미콜론을 평가한다.','앞뒤가 각각 독립적인 문장으로 성립하고 의미적으로 연결되므로 정답이다.','뒤에서 앞의 내용을 구체적으로 설명하거나 열거하는 관계에 더 적절하다.','and를 대신하는 기호이므로 두 독립절 사이의 문장부호로 쓸 수 없다.']},
+{id:11,cat:'Semicolon',type:'mc',t:'Which sentence uses a semicolon correctly?',o:['The weather was cold; we stayed indoors. (날씨가 추웠다. 우리는 실내에 머물렀다.)','The weather was cold: because we stayed indoors. (날씨가 추웠다. 우리가 실내에 머물렀기 때문이다.)','The weather was cold - because we stayed indoors. (날씨가 추웠다. 우리가 실내에 머물렀기 때문이다.)','The weather was cold & because we stayed indoors. (날씨가 추웠고 우리가 실내에 머물렀기 때문이다.)','The weather was cold; because it was raining. (날씨가 추웠다. 비가 오고 있었기 때문이다.)'],a:0,x:['앞뒤 모두 독립절이므로 세미콜론을 올바르게 사용했다.','because절은 독립절이 아니며, 이 문장에서는 콜론으로 연결하는 것도 적절하지 않다.','하이픈은 단어를 연결하는 기호이며 because절을 연결하는 용도로 적절하지 않다.','앰퍼샌드는 and를 대신하는 기호지만 because절을 연결하는 방식으로 쓸 수 없다.','because it was raining은 독립절이 아니므로 세미콜론의 독립절 연결 규칙에 맞지 않는다.']},
+{id:12,cat:'Colon',type:'dd',t:'The project has one primary objective [ ] improving educational accessibility.',a:[3],x:['복합 표현을 만드는 기호이므로 문장과 설명을 구분하는 데 적절하지 않다.','추가 설명을 삽입하거나 강조할 수 있지만, 이 문장에서는 objective를 구체화하는 콜론이 더 적절하다.','두 독립절을 연결하는 기호다. improving educational accessibility는 독립절이 아니므로 적절하지 않다.','완결된 문장 뒤에서 objective의 구체적인 내용을 설명하므로 정답이다.','and를 대신하는 기호로 설명을 도입하는 기능이 없다.']},
+{id:13,cat:'Colon',type:'mc',t:'What is the main function of a colon?',o:['두 독립절을 연결한다','복합어를 만든다','구체적인 설명이나 목록을 도입한다','부연 정보를 삽입한다','단어 "and"를 대신한다'],a:2,x:['밀접한 두 독립절을 연결하는 것은 세미콜론의 대표 기능이다.','복합어 형성은 하이픈의 대표 기능이다.','콜론은 앞의 내용을 구체적으로 설명하거나 목록을 도입하므로 정답이다.','문장 중간에 부연 정보를 삽입하는 것은 엠 대시의 대표 기능이다.','and를 대신하는 기호는 앰퍼샌드다.']},
+{id:14,cat:'Ampersand',type:'dd',t:'Department of Science [ ] Technology',a:[4],x:['복합 표현을 형성하는 기호이므로 Science와 Technology를 and의 의미로 연결하는 데 적절하지 않다.','부연 정보·강조에 쓰는 기호로 공식 명칭에서 and를 대신하지 않는다.','독립절 연결이나 복잡한 목록 항목 구분에 쓰는 기호다.','설명이나 목록을 도입하는 기호로 명칭의 and를 대신하지 않는다.','공식적인 부서명에서 Science and Technology를 간결하게 표현하므로 정답이다.']},
+{id:15,cat:'Ampersand',type:'mc',t:'Which expression uses an ampersand appropriately?',o:['I like science & I study mathematics. (나는 과학을 좋아하고 수학을 공부한다.)','The experiment & produced new results. (그 실험은 새로운 결과를 냈다.)','Research & Development Department (연구개발부서)','The students & are studying. (학생들은 공부하고 있다.)','Education & is important. (교육은 중요하다.)'],a:2,x:['일반적인 문장에서 두 절을 연결할 때는 and를 쓰는 것이 적절하다.','주어와 동사 사이에 앰퍼샌드를 넣을 수 없다. 이 문장에는 and를 쓸 문맥도 없다.','공식 부서명에서 Research and Development를 간결하게 표현하므로 정답이다.','주어와 동사 사이에 앰퍼샌드를 쓸 수 없다.','일반적인 문장에서 and를 대신하는 방식으로 앰퍼샌드를 쓸 수 없다.']}];
+const CQKO={7:'하이픈의 주된 기능은 무엇인가?',9:'엠 대시의 주된 기능은 무엇인가?',11:'세미콜론을 올바르게 사용한 문장은 어느 것인가?',13:'콜론의 주된 기능은 무엇인가?',15:'앰퍼샌드를 적절하게 사용한 표현은 어느 것인가?'};
+let cqSel=null;
+const rr=()=>{const y=scrollY;render();scrollTo(0,y)};
+function cqCard(q){
+ S.cq=S.cq||{};S.cqd=S.cqd||{};const d=S.cqd[q.id],v=S.cq[q.id],mc=q.type==='mc';
+ let h=`<div class="card"><b>${q.id-5}. ${q.cat} · ${mc?'객관식':'드래그 앤 드롭'}</b>`;
+ if(mc)h+=`<p>${esc(q.t)}</p><p class="ko">${CQKO[q.id]||''}</p>`+q.o.map((o,j)=>`<button class="opt ${v===j?'sel':''}" ${d?'disabled':''} onclick="cqPick(${q.id},${j})">${L[j]}. ${esc(o)}</button>`).join('');
+ else{let k=0;h+=`<p class="q">${esc(q.t).replace(/\[ \]/g,()=>{const s=(v||[])[k],r=`<span class="drop" data-q="${q.id}" data-k="${k}">${s!=null?SY[s]:'&nbsp;'}</span>`;k++;return r})}</p><div>${SY.map((s,i)=>`<span class="chip ${cqSel&&cqSel.q===q.id&&cqSel.i===i?'sel':''}" data-q="${q.id}" data-i="${i}">${s}</span>`).join('')}</div>${d?'':'<p class="note">기호를 빈칸으로 끌어다 놓거나, 기호를 누른 뒤 빈칸을 누르세요. 채운 빈칸을 누르면 비워집니다.</p>'}`}
+ if(!d)return h+`<button class="b" onclick="cqCheck(${q.id})">정답 확인</button></div>`;
+ const ok=mc?v===q.a:q.a.every((a,k)=>(v||[])[k]===a);
+ return h+`<p class="${ok?'ok':'no'}"><b>${ok?'정답입니다':'오답입니다'}</b> · 정답: ${mc?L[q.a]+'. '+esc(q.o[q.a]):q.a.map(a=>SY[a]).join(' , ')}</p><ul style="list-style:none;padding:0">`+
+ q.x.map((t,j)=>{const cor=mc?j===q.a:q.a.includes(j),sel=mc?v===j:(v||[]).includes(j);
+  return `<li class="${cor?'ok':sel?'no':''}"><b>${mc?L[j]+'. '+esc(q.o[j]):NAMES[SY[j]]+' ('+SY[j]+')'}</b>${cor?' ✓ ':sel?' ✗ ':': '}${t}</li>`}).join('')+`</ul><button onclick="cqReset(${q.id})">다시 풀기</button></div>`}
+function cqPick(id,j){S.cq[id]=j;save();rr()}
+function cqCheck(id){const q=CQ.find(x=>x.id===id),v=S.cq[id];
+ if(!(q.type==='mc'?v!=null:q.a.every((_,k)=>(v||[])[k]!=null)))return alert('답을 선택하거나 모든 빈칸을 채운 뒤 확인하세요.');S.cqd[id]=1;save();rr()}
+function cqReset(id){delete S.cq[id];delete S.cqd[id];cqSel=null;save();rr()}
+function place(q,k,i){if(S.cqd&&S.cqd[q])return;S.cq=S.cq||{};const a=(S.cq[q]=S.cq[q]||[]);a[k]=i;cqSel=null;save();rr()}
+const QMAP={};QS.forEach(q=>QMAP[q.id]=q);
+const $=document.getElementById('app');
+const newPid=()=>'P'+Math.random().toString(36).slice(2,8).toUpperCase();
+let S;try{S=JSON.parse(localStorage.getItem('pl_state'))}catch(e){}
+if(!S||!S.step)S={step:'start',pre:{},post:{},unit:0,pid:newPid(),back:null};
+const save=()=>{try{localStorage.setItem('pl_state',JSON.stringify(S))}catch(e){}};
+const recs=()=>{try{return JSON.parse(localStorage.getItem('pl_records')||'[]')}catch(e){return[]}};
+const saveRecs=r=>{try{localStorage.setItem('pl_records',JSON.stringify(r));return true}catch(e){alert('저장 오류: 브라우저 저장소를 사용할 수 없습니다. 시크릿 모드나 저장 공간을 확인하세요.');return false}};
+const go=(s,u)=>{S.step=s;if(u!=null)S.unit=u;save();render();scrollTo(0,0)};
+const sc=(set,d=S)=>QS.filter(q=>q.set===set&&d[set][q.id]===q.a).length;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const STEPS=[['start','시작'],['goals','목표'],['pre','사전평가'],['concept','개념학습'],['post','사후평가'],['review','해설'],['result','결과']];
+function render(){
+ const i=STEPS.findIndex(s=>s[0]===S.step);
+ document.getElementById('st').textContent=S.step==='admin'?'관리자':(STEPS[i]?STEPS[i][1]:'');
+ const f={start,goals,pre:()=>test('pre'),concept,post:()=>test('post'),review,result,admin}[S.step]||start;
+ $.innerHTML=(S.step==='admin'?'':'<div class="steps">'+STEPS.map((s,j)=>`<span class="${j===i?'on':''}">${s[1]}</span>`).join('')+'</div>')+f();
+ if(S.step==='admin')bindAdmin();
+}
+function start(){return `<div class="card"><h1>Punctuation Lab</h1><p class="sub">Understand the Marks, Understand the Meaning.</p>
+<p>영어 문장부호와 표기 기호 5종의 기능을 학습하고, 문맥에 맞는 기호를 고르는 연습을 하는 학습 앱입니다.</p>
+<div class="syms">${SY.map(s=>`<div class="sym">${s}</div>`).join('')}</div>
+<p class="note">학습 과정: 학습 목표 → 사전평가 → 개념학습 → 사후평가 → 정답·해설 비교 → 결과 → 오답 영역 복습</p>
+<div class="nav"><button class="p" onclick="go('goals')">START LEARNING</button><button onclick="go('admin')">관리자</button></div></div>`}
+function goals(){return `<div class="card"><h2>학습 목표</h2><ol><li>주요 영어 문장부호 및 표기 기호의 기능을 구분할 수 있다.</li><li>문맥과 문장 구조에 적절한 기호를 선택할 수 있다.</li><li>기호를 사용한 이유와 문장 간 관계를 이해할 수 있다.</li></ol>
+<p class="note">진행 순서: 사전평가(5문항) → 개념학습 → 사후평가(5문항) → 해설 → 결과. 이 앱은 이름·학번 등 개인정보를 수집하지 않고 익명 ID(${S.pid})로만 기록합니다.${SYNC_URL?' 사후평가를 제출하면 결과가 이 익명 ID로 교사에게 전송됩니다.':''} 문장부호 표기는 문서의 스타일 지침에 따라 달라질 수 있습니다.</p>
+<div class="nav"><button onclick="go('start')">이전</button><button class="p" onclick="go('pre')">사전평가 시작</button></div></div>`}
+function test(set){
+ const qs=QS.filter(q=>q.set===set),n=qs.filter(q=>S[set][q.id]!=null).length;
+ return `<h2>${set==='pre'?'사전진단평가':'사후평가'}</h2><div class="bar"><i style="width:${n/5*100}%"></i></div><p class="sub">${n}/5 응답 · 제출 전까지 정답은 공개되지 않습니다.</p>`+
+ qs.map((q,k)=>`<div class="card"><b>${k+1}. Choose the correct punctuation mark${q.t.split('[ ]').length>2?'s':''}.</b><p class="q">${esc(q.t).replace(/\[ \]/g,'<span class="bl">&nbsp;</span>')}</p>`+
+ q.o.map((o,j)=>`<button class="opt ${S[set][q.id]===j?'sel':''}" onclick="pick('${set}',${q.id},${j})">${L[j]}. ${o}</button>`).join('')+'</div>').join('')+
+ `<div class="nav"><button onclick="go('${set==='pre'?'goals':'concept'}')">이전</button><button class="p" onclick="submit('${set}')">제출</button></div>`}
+function pick(set,id,j){S[set][id]=j;save();const y=scrollY;render();scrollTo(0,y)}
+function submit(set){
+ const un=QS.filter(q=>q.set===set&&S[set][q.id]==null).length;
+ if(un&&!confirm(`답하지 않은 문항이 ${un}개 있습니다. 그대로 제출할까요? (미응답은 오답 처리됩니다)`))return;
+ if(set==='pre'){S.preDone=true;go('concept',0)}else finish();
+}
+function finish(){
+ const r={participant_id:S.pid,completion_status:'completed',pre_score:sc('pre'),post_score:sc('post'),pre:S.pre,post:S.post,completion_timestamp:new Date().toISOString()};
+ const all=recs().filter(x=>x.participant_id!==S.pid);all.push(r);
+ if(saveRecs(all)){go('review');push(r).then(ok=>{if(ok){const a=recs(),x=a.find(y=>y.participant_id===r.participant_id);if(x){x.synced=1;saveRecs(a)}}})}
+}
+function concept(){
+ const u=CU[S.unit],last=S.unit===4;
+ return `<h2>개념학습</h2><div class="tabs">${CU.map((c,i)=>`<button class="${i===S.unit?'on':''}" onclick="go('concept',${i})">${c.s} ${c.n}</button>`).join('')}</div>
+ <div class="card"><div style="display:flex;gap:12px;align-items:center"><div class="sym">${u.s}</div><h2>${u.n} (${u.s})</h2></div>
+ <h3>핵심 기능</h3><p>${u.fn}</p><h3>실제 예문과 해석</h3>${u.ex.map(e=>`<div class="en">${esc(e[0])}</div><p class="ko">${esc(e[1])}</p>`).join('')}
+ <h3>문장 구조와 기호의 역할</h3><p>${u.role}</p><h3>주의할 점</h3><p>${u.warn}</p><h3>다른 기호와의 차이</h3><p>${u.diff}</p></div>
+ <h3>개념 확인 문제</h3><p class="note">학습 확인용이며 사전·사후평가 점수에는 합산되지 않습니다.</p>${CQ.filter(q=>q.id===6+2*S.unit||q.id===7+2*S.unit).map(cqCard).join('')}
+ <div class="nav"><button onclick="${S.unit?`go('concept',${S.unit-1})`:S.back?`go('result')`:`go('pre')`}">이전</button>
+ ${S.back?`<button class="b" onclick="go('result')">결과로 돌아가기</button>`:last?`<button class="p" onclick="go('post')">사후평가 시작</button>`:`<button class="p" onclick="go('concept',${S.unit+1})">다음</button>`}</div>`}
+function item(q,set){
+ const sel=S[set][q.id],ok=sel===q.a;
+ return `<div class="card"><b>${set==='pre'?'사전':'사후'} · ${q.cat}</b><p class="q">${esc(q.t)}</p>
+ <p>선택: <b class="${ok?'ok':'no'}">${sel==null?'미응답':L[sel]+'. '+q.o[sel]}</b> · 정답: <b>${L[q.a]}. ${q.o[q.a]}</b> · <b class="${ok?'ok':'no'}">${ok?'정답':'오답'}</b></p>
+ <ul style="list-style:none;padding:0">${q.o.map((o,j)=>`<li class="${j===q.a?'ok':j===sel?'no':''}"><b>${L[j]}. ${NAMES[o]} (${o})</b>${j===q.a?' ✓ ':j===sel?' ✗ ':': '}${q.x[j]}</li>`).join('')}</ul></div>`}
+function review(){return `<h2>정답 비교 및 해설</h2>`+CATS.map(c=>`<h3>${c}</h3>`+QS.filter(q=>q.cat===c).map(q=>item(q,q.set)).join('')).join('')+`<div class="nav"><span></span><button class="p" onclick="go('result')">최종 결과 보기</button></div>`}
+function result(){
+ const a=sc('pre'),b=sc('post'),d=b-a,w=CATS.filter(c=>QS.some(q=>q.cat===c&&q.set==='post'&&S.post[q.id]!==q.a));
+ return `<h2>최종 학습 결과</h2><div class="card"><table><tr><th></th><th>원점수</th><th>백분율</th></tr><tr><td>사전</td><td>${a}/5</td><td>${a*20}%</td></tr><tr><td>사후</td><td>${b}/5</td><td>${b*20}%</td></tr><tr><td>변화</td><td>${d>0?'+':''}${d}점</td><td>${d>0?'+':''}${d*20}%p</td></tr></table>
+ <div class="bar" style="margin-top:10px"><i style="width:${a*20}%;background:#999"></i></div><div class="bar" style="margin-top:4px"><i style="width:${b*20}%"></i></div>
+ <p class="note">위 바: 회색=사전, 파랑=사후. 이 점수 변화는 한 번의 5문항 결과일 뿐이며, 학습 효과를 입증하는 것은 아닙니다.</p></div>
+ <div class="card wrap"><table><tr><th>기호</th><th>사전</th><th>사후</th><th>변화</th></tr>${CATS.map(c=>{const p=QS.find(q=>q.cat===c&&q.set==='pre'),o=QS.find(q=>q.cat===c&&q.set==='post'),x=S.pre[p.id]===p.a,y=S.post[o.id]===o.a;
+ return `<tr><td>${c}</td><td class="${x?'ok':'no'}">${x?'○':'×'}</td><td class="${y?'ok':'no'}">${y?'○':'×'}</td><td>${y-x>0?'향상':y-x<0?'하락':'유지'}</td></tr>`}).join('')}</table></div>
+ <div class="card"><h3>취약한 기호 영역</h3>${w.length?w.map(c=>`<button style="margin:4px" onclick="S.back=1;go('concept',${CATS.indexOf(c)})">${c} 복습</button>`).join(''):'<p class="ok">사후평가에서 모든 기호를 맞혔습니다.</p>'}</div>
+ <div class="nav"><button onclick="go('review')">해설 다시 보기</button><button class="p" onclick="restart()">새로 시작</button></div>`}
+function restart(){S={step:'start',pre:{},post:{},unit:0,pid:newPid(),back:null};save();render()}
+/* ---------- 관리자 ---------- */
+const PW='admin1234';
+/* 구글 시트 연동: Apps Script 웹앱 주소와 토큰을 입력하세요(비워 두면 연동 꺼짐) */
+const SYNC_URL='https://script.google.com/macros/s/AKfycby6H168YBDUqV3m9HVsBUsaeg1eW4Zxy0QuabBUC55jsH63CtXBF205e6nFQYZze2WANg/exec',SYNC_TOKEN='mcmh523';
+async function push(r){if(!SYNC_URL)return false;try{const res=await fetch(SYNC_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({token:SYNC_TOKEN,record:r})});const j=await res.json();return !!j.ok}catch(e){return false}}
+async function syncUp(){
+ const a=recs(),todo=a.filter(x=>!x.synced);if(!todo.length)return alert('미전송 기록이 없습니다.');
+ let ok=0;for(const x of todo){if(await push(x)){x.synced=1;ok++}}
+ saveRecs(a);alert(`전송 완료 ${ok}건 / 실패 ${todo.length-ok}건`+(ok<todo.length?'\n주소·토큰·인터넷 연결을 확인하세요.':''));render()}
+async function syncDown(){
+ try{const res=await fetch(SYNC_URL+'?token='+encodeURIComponent(SYNC_TOKEN)),j=await res.json();if(!j.ok)throw 0;
+  const m={};recs().forEach(x=>m[x.participant_id]=x);let n=0;
+  j.records.forEach(x=>{const o=m[x.participant_id];if(!o||(x.completion_timestamp||'')>(o.completion_timestamp||'')){m[x.participant_id]=Object.assign(x,{synced:1});n++}});
+  if(saveRecs(Object.values(m))){alert(`시트에서 ${j.records.length}건 확인, ${n}건 반영했습니다.`);render()}
+ }catch(e){alert('불러오기 실패: 주소·토큰·배포 설정(액세스: 모든 사용자)을 확인하세요.')}}
+function admin(){
+ if(!S.adm){return `<div class="card"><h2>관리자</h2><input id="pw" type="password" placeholder="비밀번호" style="padding:8px;font:inherit"> <button class="p" onclick="if(document.getElementById('pw').value===PW){S.adm=1;render()}else alert('비밀번호가 올바르지 않습니다.')">확인</button>
+ <p class="note">주의: 이 비밀번호는 프론트엔드 코드에 들어 있어 강력한 보안 수단이 아닙니다(코드를 보면 누구나 알 수 있음). 실제 배포 시에는 서버 측 인증이 필요합니다. 비밀번호는 소스의 PW 상수에서 바꾸세요.</p><button onclick="go('start')">돌아가기</button></div>`}
+ const r=recs();
+ return `<h2>학습 데이터 관리</h2><p class="note">데이터는 이 기기의 브라우저에만 저장됩니다. 서버가 없으므로 다른 기기의 기록은 자동으로 모이지 않습니다. 학생 기기에서 JSON을 내보낸 뒤 이 화면에서 가져와 통합하세요(같은 participant_id는 더 최근 기록 1건만 유지).</p>
+ <div class="card wrap"><b>저장된 학습자: ${r.length}명</b><table><tr><th>ID</th><th>사전</th><th>사후</th><th>변화</th><th>상태</th><th>시트 전송</th></tr>${r.map(x=>`<tr><td>${esc(x.participant_id)}</td><td>${x.pre_score}</td><td>${x.post_score}</td><td>${x.post_score-x.pre_score}</td><td>${esc(x.completion_status)}</td><td>${x.synced?'✓':SYNC_URL?'미전송':'-'}</td></tr>`).join('')||'<tr><td colspan=6>데이터 없음</td></tr>'}</table></div>
+ <div class="card"><button onclick="expJSON()">JSON 내보내기</button> <label><button onclick="document.getElementById('imp').click()">JSON 가져오기</button><input id="imp" type="file" accept=".json,application/json" hidden></label> <button class="b" onclick="expXLSX()">Excel(.xlsx) 다운로드</button>${SYNC_URL?' <button onclick="syncUp()">미전송 기록 보내기</button> <button onclick="syncDown()">구글 시트에서 불러오기</button>':'<p class="note">구글 시트 연동이 꺼져 있습니다. 소스의 SYNC_URL·SYNC_TOKEN을 입력하면 켜집니다.</p>'} <button onclick="delAll()" style="color:#b91c1c;border-color:#b91c1c">저장 데이터 삭제</button></div>
+ <div class="nav"><button onclick="S.adm=0;go('start')">나가기</button></div>`}
+function bindAdmin(){const i=document.getElementById('imp');if(!i)return;i.onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{
+ const d=JSON.parse(rd.result);if(!Array.isArray(d))throw 0;const m={};recs().forEach(x=>m[x.participant_id]=x);let add=0,upd=0,skip=0;
+ d.forEach(x=>{if(!x||!x.participant_id||!x.pre||!x.post){skip++;return}const o=m[x.participant_id];if(!o){m[x.participant_id]=x;add++}else if((x.completion_timestamp||'')>(o.completion_timestamp||'')){m[x.participant_id]=x;upd++}else skip++});
+ if(saveRecs(Object.values(m))){alert(`가져오기 완료: 추가 ${add}, 갱신 ${upd}, 중복·무효 제외 ${skip}`);render()}
+ }catch(err){alert('가져오기 실패: 올바른 Punctuation Lab JSON 파일이 아닙니다.')}};rd.readAsText(f)}}
+function dl(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove()}
+function expJSON(){const r=recs();if(!r.length)return alert('내보낼 데이터가 없습니다.');dl(new Blob([JSON.stringify(r,null,1)],{type:'application/json'}),'punctuation-lab-data.json')}
+function expXLSX(){
+ const r=recs();if(!r.length)return alert('내보낼 데이터가 없습니다.');if(typeof XLSX==='undefined')return alert('Excel 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인하세요.');
+ const s1=r.map(x=>({participant_id:x.participant_id,pre_score:x.pre_score,post_score:x.post_score,score_change:x.post_score-x.pre_score,completion_status:x.completion_status}));
+ const s2=[],s3=[];
+ r.forEach(x=>['pre','post'].forEach(ev=>QS.filter(q=>q.set===ev).forEach(q=>{const j=x[ev][q.id],sa=j==null?'':q.o[j],ca=q.o[q.a],c=j===q.a?1:0;
+  s2.push({participant_id:x.participant_id,evaluation:ev,question_id:q.id,category:q.cat,selected_answer:sa,correct_answer:ca,correctness:c});
+  s3.push({participant_id:x.participant_id,evaluation:ev,question_id:q.id,selected_answer:sa,correct_answer:ca,result:c?'correct':'incorrect'})})));
+ const s4=CATS.map(c=>{const rate=ev=>{const q=QS.find(z=>z.cat===c&&z.set===ev);return Math.round(r.filter(x=>x[ev][q.id]===q.a).length/r.length*1000)/10};const a=rate('pre'),b=rate('post');return{category:c,pre_correct_rate:a,post_correct_rate:b,change_pp:Math.round((b-a)*10)/10}});
+ const wb=XLSX.utils.book_new();
+ [['전체 학습자 데이터',s1],['문항별 정오답 데이터',s2],['선택지 및 오답 분석',s3],['기호별 성취도 분석',s4]].forEach(([n,d])=>XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(d),n));
+ try{XLSX.writeFile(wb,'punctuation-lab-data.xlsx')}catch(e){alert('Excel 파일 생성 중 오류가 발생했습니다.')}
+}
+function delAll(){if(confirm('이 기기에 저장된 모든 학습 기록을 삭제합니다. 되돌릴 수 없습니다. 계속할까요?')){try{localStorage.removeItem('pl_records')}catch(e){}render()}}
+document.addEventListener('pointerdown',e=>{
+ const c=e.target.closest('.chip');if(!c||(S.cqd&&S.cqd[c.dataset.q]))return;
+ const sx=e.clientX,sy=e.clientY,q=+c.dataset.q,i=+c.dataset.i;let g=null,moved=false;
+ const mv=ev=>{if(!moved&&Math.hypot(ev.clientX-sx,ev.clientY-sy)>6){moved=true;g=c.cloneNode(true);g.style.cssText='position:fixed;pointer-events:none;opacity:.85;z-index:99;margin:0';document.body.appendChild(g)}
+  if(g){g.style.left=ev.clientX-24+'px';g.style.top=ev.clientY-24+'px'}};
+ const up=ev=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up);removeEventListener('pointercancel',up);if(g)g.remove();
+  if(moved){const d=document.elementFromPoint(ev.clientX,ev.clientY),dr=d&&d.closest('.drop');if(dr&&+dr.dataset.q===q)place(q,+dr.dataset.k,i)}
+  else{cqSel=(cqSel&&cqSel.q===q&&cqSel.i===i)?null:{q,i};rr()}};
+ addEventListener('pointermove',mv);addEventListener('pointerup',up);addEventListener('pointercancel',up)});
+document.addEventListener('click',e=>{const dr=e.target.closest('.drop');if(!dr)return;const q=+dr.dataset.q,k=+dr.dataset.k;
+ if(S.cqd&&S.cqd[q])return;
+ if(cqSel&&cqSel.q===q)place(q,k,cqSel.i);
+ else if(S.cq&&S.cq[q]&&S.cq[q][k]!=null){S.cq[q][k]=null;save();rr()}});
+render();
+</script></body></html>
